@@ -5,6 +5,25 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from pathlib import Path
 import datetime
+import win32event
+import win32api
+import winerror
+import json
+
+class SingleInstance:
+    def __init__(self, name):
+        self.mutexname = name
+        try:
+            self.mutex = win32event.CreateMutex(None, False, self.mutexname)
+        except:
+            self.mutex = None
+
+    def already_running(self):
+        return win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS
+
+    def cleanup(self):
+        if self.mutex:
+            win32api.CloseHandle(self.mutex)
 
 # Função para compactar arquivo em um arquivo zip
 def zip_arquivo(arquivo):
@@ -65,18 +84,60 @@ class MonitorarPasta(FileSystemEventHandler):
             except Exception as e:
                 arquivo_log(f'Erro ao criar arquivo: {e}')
 
+
+if __name__ == "__main__":
+    # Defina um nome único para o seu aplicativo
+    app_name = "zipador_tdm"    
+    
+    caminho_pasta = ''
+    
+    instance = SingleInstance(app_name)
+    
+    if instance.already_running():
+        instance.cleanup()
+    else:        
+        # Caminho para a pasta que você deseja monitorar
+        try:
+            with open (str(os.path.expandvars('%appdata%\\zipador_tdm\\settings.json')), encoding='ANSI', mode='r') as arquivo_json:
+                settings_json = arquivo_json.read()
+                settings_json = settings_json.replace('\\','/')  
+                arquivo_json.close()
+                with open (str(os.path.expandvars('%appdata%\\zipador_tdm\\settings.json')), 'w') as arquivo_json:
+                    arquivo_json.write(settings_json)
+                    arquivo_json.close()
+                with open (str(os.path.expandvars('%appdata%\\zipador_tdm\\settings.json')), mode='r') as arquivo_json:                                
+                    settings = json.load(arquivo_json)
+                    caminho_pasta = str(settings[0]['caminho_pasta']).replace('/','\\')
+                    arquivo_json.close()                    
+        except FileNotFoundError:
+            arquivo_log(f'Arquivo de Configuração \'settings.json\' não Encontrado.\nCriado Novo Arquivo de Configuração Zerado!')
+            with open (str(os.path.expandvars('%appdata%\\zipador_tdm\\settings.json')), 'w') as arquivo_json:
+                arquivo_json.write('''[{
+  "caminho_pasta": ""
+}]''')
+            instance.cleanup()  
+            quit()   
+        
+        observer = Observer()
+        # Inicializar o observador
+        
+        try:
+            observer.schedule(MonitorarPasta(), path=caminho_pasta, recursive=True)
+            observer.start()
+        except FileNotFoundError:
+            arquivo_log(f'Pasta de monitoramento não encontrada!')
+            instance.cleanup()
+            observer.stop() 
+            quit()                        
+    
+        try:
+            while True:
+                time.sleep(1)
+        except Exception as e:
+            arquivo_log(f'Erro ao Iniciar Aplicação: {e}')
+            observer.stop()
+            instance.cleanup()
             
-# Caminho para a pasta que você deseja monitorar
-caminho_pasta = 'D:\\Cessações de Uso'
-
-# Inicializar o observador
-observer = Observer()
-observer.schedule(MonitorarPasta(), path=caminho_pasta, recursive=True)
-observer.start()
-
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    observer.stop()
-observer.join()
+        observer.join()                                 
+            
+        
