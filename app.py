@@ -9,6 +9,34 @@ import win32event
 import win32api
 import winerror
 import json
+import pystray
+from pystray import MenuItem as item
+from PIL import Image
+
+# Função para encerrar a aplicação
+def exit_action(icon, item): 
+    icon.visible = False 
+    os._exit(0)    
+
+# Criar ícone na bandeja do sistema
+def create_systray():
+    # Carregar uma imagem para o ícone
+    try:
+        image = Image.open('icone.png') 
+    except FileNotFoundError:
+        blank_image = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+        blank_image.save('icone.png', 'PNG')
+        image = Image.open('icone.png') 
+
+    # Criar o ícone na bandeja do sistema
+    icon = pystray.Icon('zipador_tdm', image, 'Zipador de TDM')
+
+    # Adicionar item de menu para sair
+    exit_item = item('Encerrar', exit_action)
+    icon.menu = (exit_item,)
+
+    # Exibir o ícone
+    icon.run()
 
 class SingleInstance:
     def __init__(self, name):
@@ -63,8 +91,7 @@ def modifica_arquivo_tdm(arquivo_txt):
             
         except PermissionError as e:
             if e.errno == 13:
-                return False
-   
+                return False   
             
 # Classe para manipular os eventos do sistema de arquivos
 class MonitorarPasta(FileSystemEventHandler):
@@ -116,10 +143,10 @@ if __name__ == "__main__":
   "caminho_pasta": ""
 }]''')
             instance.cleanup()  
-            quit()   
+            os._exit(0) 
         
         observer = Observer()
-        # Inicializar o observador
+        # Inicializar o observador  
         
         try:
             observer.schedule(MonitorarPasta(), path=caminho_pasta, recursive=True)
@@ -128,15 +155,19 @@ if __name__ == "__main__":
             arquivo_log(f'Pasta de monitoramento não encontrada!')
             instance.cleanup()
             observer.stop() 
-            quit()                        
+            os._exit(0)           
+            
+        create_systray()                   
     
         try:
             while True:
                 time.sleep(1)
-        except Exception as e:
-            arquivo_log(f'Erro ao Iniciar Aplicação: {e}')
+        except KeyboardInterrupt:
             observer.stop()
             instance.cleanup()
+        except SystemExit:
+            observer.stop()
+            instance.cleanup()       
             
         observer.join()                                 
             
