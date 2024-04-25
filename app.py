@@ -18,22 +18,26 @@ def exit_action(icon, item):
     icon.visible = False 
     os._exit(0)    
 
+def abrir_arquivo_log():
+    os.startfile(os.path.expandvars('%appdata%\\zipador_tdm\\Log.log'))    
+
 # Criar ícone na bandeja do sistema
 def create_systray():
     # Carregar uma imagem para o ícone
     try:
-        image = Image.open('icone.png') 
+        image = Image.open(os.path.expandvars('%appdata%\\zipador_tdm\\icone.png'))
     except FileNotFoundError:
         blank_image = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
-        blank_image.save('icone.png', 'PNG')
-        image = Image.open('icone.png') 
+        blank_image.save(os.path.expandvars('%appdata%\\zipador_tdm\\icone.png'), 'PNG')
+        image = Image.open(os.path.expandvars('%appdata%\\zipador_tdm\\icone.png')) 
 
     # Criar o ícone na bandeja do sistema
     icon = pystray.Icon('zipador_tdm', image, 'Zipador de TDM')
 
     # Adicionar item de menu para sair
+    abrir_log = item('Abrir Log', abrir_arquivo_log)
     exit_item = item('Encerrar', exit_action)
-    icon.menu = (exit_item,)
+    icon.menu = (abrir_log, exit_item,)
 
     # Exibir o ícone
     icon.run()
