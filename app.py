@@ -18,6 +18,7 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtWinExtras
 ctypes.windll.shell32.ExtractIconW.restype = ctypes.c_size_t
 from tkinter import filedialog
+from plyer import notification
 
 # Para Pegar o ícone do executável
 def displayIcon(path: str, index=0):
@@ -54,6 +55,16 @@ def reiniciar_app():
     python = sys.executable
     os.execl(python, python, *sys.argv)
 
+# Mostrar notificação
+def notificacao(titulo,mensagem):
+    notification.notify(
+        title=titulo,
+        message=mensagem,
+        app_name='Zipador de TDM',
+        app_icon=os.path.expandvars('%appdata%\\zipador_tdm\\icone.ico'), 
+        timeout=10
+    )
+
 # Criar ícone no Systray
 def create_systray():
     # Tentar carregar uma imagem para o ícone do systray, caso não encontre cria uma em branco
@@ -65,7 +76,7 @@ def create_systray():
         image = Image.open(os.path.expandvars('%appdata%\\zipador_tdm\\icone.ico')) 
 
     icon = pystray.Icon('zipador_tdm', image, f'Zipador de TDM - Monitorante Pasta: {ler_arquivo_json()}')
-
+        
     abrir_log = item('Abrir Log', abrir_arquivo_log)
     selecionar = item('Selecionar Pasta Monitoramento', selecionar_pasta)
     reiniciar = item('Reiniciar', reiniciar_app)
@@ -122,9 +133,12 @@ def modifica_arquivo_tdm(arquivo_txt):
                 os.rename(arquivo_txt, novo_nome) 
                 zip_arquivo(novo_nome)            
                 os.remove(novo_nome)
-                arquivo_log(f'Criado arquivo com Sucesso: {novo_nome}')
+                nome_zip = os.path.splitext(novo_nome)[0] + '.zip'
+                arquivo_log(f'Arquivo criado com Sucesso: {nome_zip}')
+                notificacao('Compactação de TDM',f'Arquivo criado com Sucesso: {nome_zip}')
             else:
-                arquivo_log(f'Arquivo não é TDM válido: {novo_nome}')
+                arquivo_log(f'Arquivo não é TDM válido: {nome_zip}')
+                notificacao('Problema ao Compactar', f'Arquivo não é TDM válido: {nome_zip}')
             
             return True
             
