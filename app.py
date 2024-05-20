@@ -154,7 +154,7 @@ class MonitorarPasta(FileSystemEventHandler):
     def on_created(self, event):
         if event.is_directory:
             return
-        elif event.src_path.endswith('.txt'):
+        elif (event.src_path.lower()).endswith('.txt'):
             time.sleep(1) 
             try:
                 while not modifica_arquivo_tdm(event.src_path):
