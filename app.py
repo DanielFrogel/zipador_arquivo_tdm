@@ -161,6 +161,12 @@ class MonitorarPasta(FileSystemEventHandler):
                     time.sleep(10)
             except Exception as e:
                 arquivo_log(f'Erro ao criar arquivo: {e}')
+                
+def verifica_pasta_inicializacao():
+    arquivos_txt = [os.path.join(ler_arquivo_json(), arquivo) for arquivo in os.listdir(ler_arquivo_json()) if arquivo.lower().endswith('.txt')]
+    
+    for arquivo in arquivos_txt:
+        modifica_arquivo_tdm(arquivo)
 
 # Tenta ler o caminho da pasta de monitoramento da arquivo settings.json e inverte a \ para / para evitir erro no json
 # Caso não encontre ele pega o caminho do executável
@@ -200,6 +206,8 @@ if __name__ == "__main__":
     if instance.already_running():
         instance.cleanup()
     else:        
+        # Verificação de Arquivos ao abrir App
+        verifica_pasta_inicializacao()        
              
         # Inicia o monitoramento
         observer = Observer()          
